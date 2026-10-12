@@ -16,6 +16,14 @@ repository = "https://github.com/Parhelion-Labs/parhelion"
 parhelion-state = { path = "crates/parhelion-state" }
 parhelion-engine = { path = "crates/parhelion-engine" }
 
+# Soroban host, pinned exactly as stellar-rpc's preflight pins it (stellar-rpc v29.0.0).
+# `curr` runs the current mainnet protocol, `prev` the one before it. Bump both pairs
+# together, only when stellar-rpc does, or simulation drifts from mainnet after an upgrade.
+soroban-env-host-curr = { package = "soroban-env-host", version = "=29.0.0" }
+soroban-simulation-curr = { package = "soroban-simulation", version = "=29.0.0", features = ["unstable-next-api"] }
+soroban-env-host-prev = { package = "soroban-env-host", version = "=28.0.1" }
+soroban-simulation-prev = { package = "soroban-simulation", version = "=28.0.1" }
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
