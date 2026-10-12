@@ -1,0 +1,20 @@
+[package]
+name = "parhelion-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "parhelion"
+path = "src/main.rs"
+
+[dependencies]
+parhelion-engine = { workspace = true }
+
+[dev-dependencies]
+# Installs the git hooks in .cargo-husky/hooks/ into .git/hooks on the first `cargo test`.
+cargo-husky = { version = "1", default-features = false, features = ["user-hooks"] }
+
+[lints]
+workspace = true

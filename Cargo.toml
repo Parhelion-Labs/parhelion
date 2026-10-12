@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/parhelion-state",
+    "crates/parhelion-engine",
+    "crates/parhelion-cli",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/Parhelion-Labs/parhelion"
+
+[workspace.dependencies]
+parhelion-state = { path = "crates/parhelion-state" }
+parhelion-engine = { path = "crates/parhelion-engine" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
