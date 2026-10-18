@@ -1,5 +1,6 @@
 //! Lazy mainnet ledger state for the Soroban host.
 
+pub mod fetcher;
 pub mod rpc;
 
 #[cfg(test)]
