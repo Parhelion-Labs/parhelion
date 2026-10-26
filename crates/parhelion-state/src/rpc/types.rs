@@ -14,5 +14,7 @@ pub struct LedgerEntries {
 pub struct RemoteEntry {
     pub key: LedgerKey,
     pub entry: LedgerEntry,
+    /// `None` for entries without a TTL. An archived Soroban entry is still returned, with a
+    /// value below the current ledger (the RPC sends `0`).
     pub live_until_ledger_seq: Option<u32>,
 }
