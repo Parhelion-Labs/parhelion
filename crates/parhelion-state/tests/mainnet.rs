@@ -2,13 +2,17 @@
 //! `cargo test -p parhelion-state -- --ignored`. Override the endpoint with
 //! `PARHELION_MAINNET_RPC_URL`.
 
+use std::rc::Rc;
 use std::str::FromStr;
 
+use parhelion_state::fetcher::Fetcher;
 use parhelion_state::rpc::RpcClient;
+use parhelion_state::store::LayeredStore;
 use parhelion_state::xdr::{
     ContractDataDurability, ContractExecutable, LedgerEntryData, LedgerKey, LedgerKeyContractData,
     ScAddress, ScVal,
 };
+use soroban_env_host_curr::storage::SnapshotSource;
 
 const DEFAULT_MAINNET_RPC_URL: &str = "https://mainnet.sorobanrpc.com";
 
@@ -22,9 +26,13 @@ fn mainnet() -> RpcClient {
 }
 
 fn instance_key(contract: &str) -> LedgerKey {
+    persistent_key(contract, ScVal::LedgerKeyContractInstance)
+}
+
+fn persistent_key(contract: &str, key: ScVal) -> LedgerKey {
     LedgerKey::ContractData(LedgerKeyContractData {
         contract: ScAddress::from_str(contract).unwrap(),
-        key: ScVal::LedgerKeyContractInstance,
+        key,
         durability: ContractDataDurability::Persistent,
     })
 }
@@ -52,4 +60,23 @@ async fn fetches_and_decodes_a_mainnet_contract_instance() {
         panic!("expected a contract instance, got {:?}", data.val);
     };
     assert_eq!(instance.executable, ContractExecutable::StellarAsset);
+}
+
+#[test]
+#[ignore = "needs network access to a mainnet RPC"]
+fn layered_store_serves_mainnet_entries_to_the_host() {
+    let store = LayeredStore::new(Fetcher::spawn(mainnet()).unwrap());
+    let instance = Rc::new(instance_key(USDC_SAC));
+    let absent = Rc::new(persistent_key(USDC_SAC, ScVal::U32(0)));
+
+    let (entry, live_until) = store.get(&instance).unwrap().unwrap();
+    let LedgerEntryData::ContractData(data) = &entry.data else {
+        panic!("expected contract data, got {:?}", entry.data);
+    };
+    assert!(matches!(data.val, ScVal::ContractInstance(_)));
+    assert!(live_until.is_some());
+
+    // Served from the cache this time.
+    assert_eq!(store.get(&instance).unwrap(), Some((entry, live_until)));
+    assert_eq!(store.get(&absent).unwrap(), None);
 }

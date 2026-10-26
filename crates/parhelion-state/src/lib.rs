@@ -2,6 +2,7 @@
 
 pub mod fetcher;
 pub mod rpc;
+pub mod store;
 
 #[cfg(test)]
 mod test_utils;
