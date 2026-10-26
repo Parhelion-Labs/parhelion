@@ -52,6 +52,8 @@ struct RawEntry {
     xdr: String,
     last_modified_ledger_seq: u32,
     live_until_ledger_seq: Option<u32>,
+    /// Base64 `LedgerEntryExt` (sponsorship).
+    ext_xdr: Option<String>,
 }
 
 impl RawResult {
@@ -79,16 +81,19 @@ impl RawEntry {
                 reason: format!("entry data does not match its key {}", self.key),
             });
         }
+        let ext = match &self.ext_xdr {
+            Some(ext) => LedgerEntryExt::from_xdr_base64(ext, Limits::none())?,
+            None => LedgerEntryExt::V0,
+        };
         Ok(RemoteEntry {
             key,
             entry: LedgerEntry {
                 last_modified_ledger_seq: self.last_modified_ledger_seq,
                 data,
-                // The RPC does not return the extension (sponsorship). The Soroban host
-                // does not read it.
-                ext: LedgerEntryExt::V0,
+                ext,
             },
-            live_until_ledger_seq: self.live_until_ledger_seq.filter(|&seq| seq != 0),
+            // Kept as is: `0` marks an archived entry, which the simulation must restore.
+            live_until_ledger_seq: self.live_until_ledger_seq,
         })
     }
 }
@@ -100,8 +105,10 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     use super::*;
-    use crate::test_utils::{account_data, account_key, b64, server_returning};
-    use crate::xdr::TtlEntry;
+    use crate::test_utils::{account_data, account_id, account_key, b64, server_returning};
+    use crate::xdr::{
+        LedgerEntryExtensionV1, LedgerEntryExtensionV1Ext, SponsorshipDescriptor, TtlEntry,
+    };
 
     #[tokio::test]
     async fn sends_base64_keys() {
@@ -163,6 +170,36 @@ mod tests {
                 live_until_ledger_seq: None,
             }]
         );
+    }
+
+    #[tokio::test]
+    async fn keeps_the_extension_and_a_zero_live_until_ledger() {
+        let ext = LedgerEntryExt::V1(LedgerEntryExtensionV1 {
+            sponsoring_id: SponsorshipDescriptor(Some(account_id(2))),
+            ext: LedgerEntryExtensionV1Ext::V0,
+        });
+        let server = server_returning(json!({
+            "jsonrpc": "2.0", "id": 1,
+            "result": {
+                "latestLedger": 100,
+                "entries": [{
+                    "key": b64(&account_key(1)),
+                    "xdr": b64(&account_data(1, 42)),
+                    "lastModifiedLedgerSeq": 90,
+                    "liveUntilLedgerSeq": 0,
+                    "extXdr": b64(&ext),
+                }],
+            },
+        }))
+        .await;
+
+        let result = RpcClient::new(server.uri())
+            .get_ledger_entries(&[account_key(1)])
+            .await
+            .unwrap();
+
+        assert_eq!(result.entries[0].live_until_ledger_seq, Some(0));
+        assert_eq!(result.entries[0].entry.ext, ext);
     }
 
     #[tokio::test]
