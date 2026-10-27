@@ -3,10 +3,20 @@
 //! `PARHELION_MAINNET_RPC_URL`.
 
 use std::path::Path;
+use std::str::FromStr;
 
-use parhelion_engine::{Fork, ForkOptions};
+use parhelion_engine::xdr::{
+    AccountId, ContractDataDurability, LedgerKey, LedgerKeyContractData, ScAddress, ScVal,
+};
+use parhelion_engine::{invoke_contract, Fork, ForkOptions};
 
 const DEFAULT_MAINNET_RPC_URL: &str = "https://mainnet.sorobanrpc.com";
+
+/// Stellar Asset Contract of Circle's USDC on mainnet.
+const USDC_SAC: &str = "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75";
+
+/// An account that does not need to exist: the calls below require no authorization.
+const SOURCE: &str = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
 
 /// SHA-256 of "Public Global Stellar Network ; September 2015".
 const MAINNET_NETWORK_ID: [u8; 32] = [
@@ -62,4 +72,34 @@ async fn a_pinned_fork_needs_no_network_on_the_second_run() {
 
     assert_eq!(second.ledger_info, first.ledger_info);
     assert_eq!(second.network_config, first.network_config);
+}
+
+#[tokio::test]
+#[ignore = "needs network access to a mainnet RPC"]
+async fn simulates_a_mainnet_contract_call() {
+    let dir = tempfile::tempdir().unwrap();
+    let fork = Fork::connect(&options(None, dir.path())).await.unwrap();
+    let usdc = ScAddress::from_str(USDC_SAC).unwrap();
+    let source = AccountId::from_str(SOURCE).unwrap();
+    let instance = LedgerKey::ContractData(LedgerKeyContractData {
+        contract: usdc.clone(),
+        key: ScVal::LedgerKeyContractInstance,
+        durability: ContractDataDurability::Persistent,
+    });
+    let decimals = || invoke_contract(usdc.clone(), "decimals", vec![]).unwrap();
+
+    let simulation = fork.simulate(decimals(), &source).unwrap();
+
+    assert_eq!(simulation.return_value().unwrap(), &ScVal::U32(7));
+    let footprint = simulation.footprint().unwrap();
+    assert!(footprint.read_only.contains(&instance), "{footprint:?}");
+    assert!(footprint.read_write.is_empty(), "{footprint:?}");
+    assert!(simulation.resources().unwrap().instructions > 0);
+    assert!(simulation.min_resource_fee().unwrap() > 0);
+    assert!(simulation.fetched_keys.contains(&instance));
+
+    // Everything is cached now.
+    let again = fork.simulate(decimals(), &source).unwrap();
+    assert_eq!(again.return_value().unwrap(), &ScVal::U32(7));
+    assert!(again.fetched_keys.is_empty(), "{:?}", again.fetched_keys);
 }

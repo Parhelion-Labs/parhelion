@@ -4,6 +4,7 @@
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 use parhelion_state::disk_cache::DiskCache;
 use parhelion_state::fetcher::Fetcher;
@@ -32,7 +33,8 @@ pub struct ForkOptions {
 pub type Remote = Box<dyn RemoteSource + Send + Sync>;
 
 pub struct Fork {
-    pub store: LayeredStore<Remote>,
+    /// Shared with the host, which takes its snapshot source as an `Rc`.
+    pub store: Rc<LayeredStore<Remote>>,
     pub ledger_info: LedgerInfo,
     pub network_config: NetworkConfig,
 }
@@ -68,7 +70,7 @@ impl Fork {
         network_config.fill_config_fields_in_ledger_info(&mut ledger_info);
 
         Ok(Self {
-            store,
+            store: Rc::new(store),
             ledger_info,
             network_config,
         })

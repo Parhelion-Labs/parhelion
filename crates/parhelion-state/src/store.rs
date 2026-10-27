@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::slice;
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 
 use soroban_env_host_curr::storage::{EntryWithLiveUntil, SnapshotSource};
 use soroban_env_host_curr::HostError;
@@ -48,6 +48,8 @@ pub struct LayeredStore<R> {
     cache: RwLock<HashMap<LedgerKey, Option<Entry>>>,
     /// L2.
     remote: R,
+    /// Keys asked of L2 since the last [`take_fetched`](Self::take_fetched), in order.
+    fetched: Mutex<Vec<LedgerKey>>,
 }
 
 impl<R: RemoteSource> LayeredStore<R> {
@@ -56,7 +58,13 @@ impl<R: RemoteSource> LayeredStore<R> {
             local: Default::default(),
             cache: Default::default(),
             remote,
+            fetched: Default::default(),
         }
+    }
+
+    /// Returns and clears the keys fetched from the remote so far.
+    pub fn take_fetched(&self) -> Vec<LedgerKey> {
+        std::mem::take(&mut *self.fetched.lock().unwrap())
     }
 
     /// Writes `key` locally; `None` deletes it. The remote is never consulted for it again.
@@ -113,6 +121,7 @@ impl<R: RemoteSource> LayeredStore<R> {
         }
         // No lock is held while fetching; the fetcher merges concurrent misses on the same key.
         let results = self.remote.fetch(keys);
+        self.fetched.lock().unwrap().extend_from_slice(keys);
         let mut code_keys = Vec::new();
         let mut first_error = None;
         {
