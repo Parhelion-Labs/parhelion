@@ -1,7 +1,9 @@
 //! Decoded results of the RPC methods. Response shapes and samples:
 //! <https://developers.stellar.org/docs/data/apis/rpc/api-reference/methods>
 
-use crate::xdr::{LedgerEntry, LedgerKey};
+use crate::xdr::{
+    LedgerEntry, LedgerKey, ScVal, SorobanAuthorizationEntry, SorobanTransactionData,
+};
 
 /// `getLatestLedger` result.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +19,26 @@ pub struct LatestLedger {
 pub struct Network {
     pub passphrase: String,
     pub protocol_version: u32,
+}
+
+/// `simulateTransaction` result.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SimulateTransactionResult {
+    pub latest_ledger: u32,
+    /// Footprint, resources and resource fee; `None` when the simulation failed.
+    pub transaction_data: Option<SorobanTransactionData>,
+    /// Stroops.
+    pub min_resource_fee: Option<i64>,
+    /// One per host function; a transaction holds at most one.
+    pub results: Vec<HostFunctionResult>,
+    /// Why the simulation failed.
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HostFunctionResult {
+    pub return_value: ScVal,
+    pub auth: Vec<SorobanAuthorizationEntry>,
 }
 
 /// `getLedgerEntries` result.

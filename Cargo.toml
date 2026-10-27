@@ -4,6 +4,7 @@ members = [
     "crates/parhelion-state",
     "crates/parhelion-engine",
     "crates/parhelion-cli",
+    "tests/differential",
 ]
 
 [workspace.package]
