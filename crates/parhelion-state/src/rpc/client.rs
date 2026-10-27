@@ -1,8 +1,14 @@
+use std::time::Duration;
+
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use super::jsonrpc::{Request, Response};
 use super::{Error, Result};
+
+/// Public RPC providers drop connections now and then; one retry rides over that.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// JSON-RPC client for a remote Stellar RPC server.
 ///
@@ -15,8 +21,13 @@ pub struct RpcClient {
 
 impl RpcClient {
     pub fn new(url: impl Into<String>) -> Self {
+        let http = reqwest::Client::builder()
+            .connect_timeout(CONNECT_TIMEOUT)
+            .timeout(REQUEST_TIMEOUT)
+            .build()
+            .expect("reqwest client with timeouts");
         Self {
-            http: reqwest::Client::new(),
+            http,
             url: url.into(),
         }
     }
@@ -25,6 +36,7 @@ impl RpcClient {
         &self.url
     }
 
+    /// Every method is a read, so a request that could not be sent or answered is retried once.
     pub(super) async fn call<P, R>(&self, method: &'static str, params: P) -> Result<R>
     where
         P: Serialize,
@@ -37,17 +49,11 @@ impl RpcClient {
             method,
             params,
         };
-        let response: Response<R> = self
-            .http
-            .post(&self.url)
-            .json(&request)
-            .send()
-            .await
-            .and_then(reqwest::Response::error_for_status)
-            .map_err(|source| Error::Http { method, source })?
-            .json()
-            .await
-            .map_err(|source| Error::Http { method, source })?;
+        let response: Response<R> = match self.post(&request).await {
+            Err(error) if error.is_connect() || error.is_timeout() => self.post(&request).await,
+            first => first,
+        }
+        .map_err(|source| Error::Http { method, source })?;
 
         match (response.result, response.error) {
             (_, Some(error)) => Err(Error::Rpc {
@@ -61,6 +67,20 @@ impl RpcClient {
                 reason: "neither `result` nor `error` is present".into(),
             }),
         }
+    }
+
+    async fn post<P: Serialize, R: DeserializeOwned>(
+        &self,
+        request: &Request<P>,
+    ) -> reqwest::Result<Response<R>> {
+        self.http
+            .post(&self.url)
+            .json(request)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await
     }
 }
 

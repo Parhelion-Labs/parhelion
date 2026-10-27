@@ -9,9 +9,13 @@ mod get_latest_ledger;
 mod get_ledger_entries;
 mod get_network;
 mod jsonrpc;
+mod simulate_transaction;
 mod types;
 
 pub use client::RpcClient;
 pub use error::{Error, Result};
 pub use get_ledger_entries::MAX_KEYS_PER_REQUEST;
-pub use types::{LatestLedger, LedgerEntries, Network, RemoteEntry};
+pub use types::{
+    HostFunctionResult, LatestLedger, LedgerEntries, Network, RemoteEntry,
+    SimulateTransactionResult,
+};

@@ -1537,6 +1537,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "parhelion-differential"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "parhelion-engine",
+ "parhelion-state",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "parhelion-engine"
 version = "0.0.0"
 dependencies = [
