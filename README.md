@@ -2,6 +2,35 @@
 
 A local Stellar node that lazily forks mainnet.
 
+## `parhelion simulate`
+
+Runs one contract call against a fork of mainnet. Only the ledger entries the call touches are
+fetched, and the call is simulated locally with the same host and fee logic as mainnet RPC.
+
+```sh
+cargo run -q -p parhelion-cli -- simulate \
+  --contract CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75 \
+  --fn balance --arg address:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN --verbose
+```
+
+```
+ledger 65162768 (protocol 29) via https://mainnet.sorobanrpc.com
+fetched 1 ledger keys from https://mainnet.sorobanrpc.com:
+  contract_data CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75 LedgerKeyContractInstance (persistent)
+result: 9223372036854775807
+result xdr: AAAACgAAAAAAAAAAf/////////8=
+min resource fee: 6269 stroops
+resources: 150263 instructions, 0 bytes read, 0 bytes written
+footprint: 1 read-only, 0 read-write
+```
+
+Arguments are written `<type>:<value>`: `bool`, `u32`, `i32`, `u64`, `i64`, `u128`, `i128`,
+`symbol`, `string`, `bytes` (hex), `address` (`G...` or `C...`), or the bare word `void`.
+`--fork testnet` or `--rpc-url` pick another network; `--source` sets the transaction's source
+account; `--pin-ledger N` makes the run reproducible (below). A failed call prints the host error
+and its diagnostic events, and exits with status 1. Soroban and the Stellar Asset Contract only:
+classic operations are not simulated.
+
 ## Development
 
 ```sh
