@@ -44,6 +44,11 @@ impl<R> DiskCache<R> {
         })
     }
 
+    /// `<dir>/<ledger>`, where the files live.
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
     fn path(&self, key: &LedgerKey) -> Result<PathBuf, FetchError> {
         let xdr = key.to_xdr(Limits::none()).map_err(invalid)?;
         let hash = Sha256::digest(xdr);

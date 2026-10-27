@@ -20,10 +20,13 @@ const DEFAULT_MAINNET_RPC_URL: &str = "https://mainnet.sorobanrpc.com";
 /// Stellar Asset Contract of Circle's USDC on mainnet.
 const USDC_SAC: &str = "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75";
 
+fn mainnet_url() -> String {
+    std::env::var("PARHELION_MAINNET_RPC_URL")
+        .unwrap_or_else(|_| DEFAULT_MAINNET_RPC_URL.to_owned())
+}
+
 fn mainnet() -> RpcClient {
-    let url = std::env::var("PARHELION_MAINNET_RPC_URL")
-        .unwrap_or_else(|_| DEFAULT_MAINNET_RPC_URL.to_owned());
-    RpcClient::new(url)
+    RpcClient::new(mainnet_url())
 }
 
 fn instance_key(contract: &str) -> LedgerKey {
@@ -66,7 +69,7 @@ async fn fetches_and_decodes_a_mainnet_contract_instance() {
 #[test]
 #[ignore = "needs network access to a mainnet RPC"]
 fn layered_store_serves_mainnet_entries_to_the_host() {
-    let store = LayeredStore::new(Fetcher::spawn(mainnet()).unwrap());
+    let store = LayeredStore::new(Fetcher::spawn(mainnet_url()).unwrap());
     let instance = Rc::new(instance_key(USDC_SAC));
     let absent = Rc::new(persistent_key(USDC_SAC, ScVal::U32(0)));
 
@@ -99,7 +102,7 @@ fn a_pinned_run_is_served_from_disk_on_the_second_run() {
     let absent = Rc::new(persistent_key(USDC_SAC, ScVal::U32(0)));
 
     let first = LayeredStore::new(
-        DiskCache::open(dir.path(), 1, Fetcher::spawn(mainnet()).unwrap()).unwrap(),
+        DiskCache::open(dir.path(), 1, Fetcher::spawn(mainnet_url()).unwrap()).unwrap(),
     );
     let entry = first.get(&instance).unwrap();
     assert!(entry.is_some());

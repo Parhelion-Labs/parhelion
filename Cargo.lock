@@ -1422,8 +1422,16 @@ dependencies = [
 name = "parhelion-engine"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "parhelion-state",
+ "serde",
+ "serde_json",
+ "sha2",
+ "soroban-env-host",
  "soroban-simulation",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
 ]
 
 [[package]]

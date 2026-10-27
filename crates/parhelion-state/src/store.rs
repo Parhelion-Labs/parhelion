@@ -35,6 +35,12 @@ impl RemoteSource for Fetcher {
     }
 }
 
+impl<R: RemoteSource + ?Sized> RemoteSource for Box<R> {
+    fn fetch(&self, keys: &[LedgerKey]) -> Vec<FetchResult> {
+        (**self).fetch(keys)
+    }
+}
+
 pub struct LayeredStore<R> {
     /// L0. `None` is a deletion and hides whatever the layers below hold.
     local: RwLock<HashMap<LedgerKey, Option<Entry>>>,

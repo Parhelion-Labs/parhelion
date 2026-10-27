@@ -22,7 +22,8 @@ Mainnet RPC only serves current state: `getLedgerEntries` has no ledger paramete
 read mainnet "as of ledger N". `--pin-ledger N` makes runs reproducible another way:
 
 - Every entry fetched under it, absent keys included, is written to `<cache-dir>/N/`, one JSON
-  file per key.
+  file per key. The ledger header the host simulates with (close time, protocol version,
+  network passphrase) is written there too, as `ledger.json`.
 - Later runs with the same `N` read those files and never call the remote for them. Keys seen for
   the first time still go remote and are added, so after one complete run the state no longer
   moves.
