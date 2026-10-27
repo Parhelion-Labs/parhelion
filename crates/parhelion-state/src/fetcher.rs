@@ -23,6 +23,9 @@ pub enum FetchError {
     Remote(Arc<rpc::Error>),
     #[error("fetcher thread has stopped")]
     Stopped,
+    /// The on-disk cache of a pinned ledger could not be read or written.
+    #[error("disk cache: {0}")]
+    Disk(Arc<std::io::Error>),
 }
 
 pub type FetchResult = Result<Option<RemoteEntry>, FetchError>;

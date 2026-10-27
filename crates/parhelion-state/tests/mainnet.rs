@@ -5,9 +5,10 @@
 use std::rc::Rc;
 use std::str::FromStr;
 
-use parhelion_state::fetcher::Fetcher;
+use parhelion_state::disk_cache::DiskCache;
+use parhelion_state::fetcher::{FetchError, FetchResult, Fetcher};
 use parhelion_state::rpc::RpcClient;
-use parhelion_state::store::LayeredStore;
+use parhelion_state::store::{LayeredStore, RemoteSource};
 use parhelion_state::xdr::{
     ContractDataDurability, ContractExecutable, LedgerEntryData, LedgerKey, LedgerKeyContractData,
     ScAddress, ScVal,
@@ -79,4 +80,32 @@ fn layered_store_serves_mainnet_entries_to_the_host() {
     // Served from the cache this time.
     assert_eq!(store.get(&instance).unwrap(), Some((entry, live_until)));
     assert_eq!(store.get(&absent).unwrap(), None);
+}
+
+/// Remote that must never be asked.
+struct NoRemote;
+
+impl RemoteSource for NoRemote {
+    fn fetch(&self, keys: &[LedgerKey]) -> Vec<FetchResult> {
+        keys.iter().map(|_| Err(FetchError::Stopped)).collect()
+    }
+}
+
+#[test]
+#[ignore = "needs network access to a mainnet RPC"]
+fn a_pinned_run_is_served_from_disk_on_the_second_run() {
+    let dir = tempfile::tempdir().unwrap();
+    let instance = Rc::new(instance_key(USDC_SAC));
+    let absent = Rc::new(persistent_key(USDC_SAC, ScVal::U32(0)));
+
+    let first = LayeredStore::new(
+        DiskCache::open(dir.path(), 1, Fetcher::spawn(mainnet()).unwrap()).unwrap(),
+    );
+    let entry = first.get(&instance).unwrap();
+    assert!(entry.is_some());
+    assert_eq!(first.get(&absent).unwrap(), None);
+
+    let second = LayeredStore::new(DiskCache::open(dir.path(), 1, NoRemote).unwrap());
+    assert_eq!(second.get(&instance).unwrap(), entry);
+    assert_eq!(second.get(&absent).unwrap(), None);
 }
