@@ -37,15 +37,20 @@ pub struct Fetcher {
 }
 
 impl Fetcher {
-    pub fn spawn(client: RpcClient) -> std::io::Result<Self> {
+    /// Starts a fetcher thread for the RPC at `url`.
+    ///
+    /// The thread builds its own HTTP client: a connection is driven by the runtime that opened
+    /// it, so a client shared with a runtime that then blocks on [`Fetcher::fetch`] would hang.
+    pub fn spawn(url: impl Into<String>) -> std::io::Result<Self> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
+        let url = url.into();
 
         let (requests, receiver) = unbounded_channel();
         thread::Builder::new()
             .name("parhelion-fetcher".into())
-            .spawn(move || runtime.block_on(run(client, receiver)))?;
+            .spawn(move || runtime.block_on(run(RpcClient::new(url), receiver)))?;
 
         Ok(Self { requests })
     }
@@ -209,7 +214,7 @@ mod tests {
     }
 
     fn fetcher(server: &MockServer) -> Fetcher {
-        Fetcher::spawn(RpcClient::new(server.uri())).unwrap()
+        Fetcher::spawn(server.uri()).unwrap()
     }
 
     #[tokio::test]
