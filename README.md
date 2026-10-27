@@ -31,6 +31,27 @@ account; `--pin-ledger N` makes the run reproducible (below). A failed call prin
 and its diagnostic events, and exits with status 1. Soroban and the Stellar Asset Contract only:
 classic operations are not simulated.
 
+## Differential suite
+
+Proof that the fork simulates like mainnet: the same invocation runs through Parhelion and
+through mainnet RPC's own `simulateTransaction`, and every field below must agree. The suite
+runs in CI on every push (job `Differential`) and locally with
+`cargo test -p parhelion-differential -- --ignored --nocapture`.
+
+| Contract | Address | Calls |
+|---|---|---|
+| USDC Stellar Asset Contract | `CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75` | `decimals`, `name`, `balance(issuer)` |
+| Blend v2.1 lending pool | `CBAKAZUEJBAFA2DCGBRS2WKJT3FNIMJBHTFL76AY7XMAVEINQNNIQWAO` | `get_config`, `get_reserve_list` |
+| Soroswap XLM/USDC pair | `CAM7DY53G63XA4AJRS24Z6VFYAFSSF76C3RZ45BE5YU3FQS5255OOABP` | `token_0`, `get_reserves`, `total_supply` |
+
+Fields compared: return value, footprint read-only set, footprint read-write set, resources
+(instructions, disk read bytes, write bytes), min resource fee. On a mismatch the harness prints
+each differing field with both values.
+
+RPC provider: `https://mainnet.sorobanrpc.com`, public and keyless; it publishes no rate limit.
+A run makes about 25 requests and has hit occasional connection timeouts, which the client
+retries once. Override with `PARHELION_MAINNET_RPC_URL`.
+
 ## Development
 
 ```sh
