@@ -52,4 +52,14 @@ jobs:
       - run: rustup show active-toolchain || rustup toolchain install
       - uses: Swatinem/rust-cache@v2
       # Tests marked #[ignore] call a live mainnet RPC.
-      - run: cargo test --workspace --locked -- --ignored
+      - run: cargo test --workspace --exclude parhelion-differential --locked -- --ignored
+
+  differential:
+    name: Differential
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      # Parhelion vs mainnet RPC's simulateTransaction on live contracts; prints every comparison.
+      - run: cargo test -p parhelion-differential --locked -- --ignored --nocapture --test-threads 1
