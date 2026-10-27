@@ -11,6 +11,10 @@ path = "src/main.rs"
 
 [dependencies]
 parhelion-engine = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+hex = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
 # Installs the git hooks in .cargo-husky/hooks/ into .git/hooks on the first `cargo test`.
