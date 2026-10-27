@@ -1526,7 +1526,7 @@ dependencies = [
 
 [[package]]
 name = "parhelion-cli"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "cargo-husky",
@@ -1538,7 +1538,7 @@ dependencies = [
 
 [[package]]
 name = "parhelion-differential"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "parhelion-engine",
@@ -1549,7 +1549,7 @@ dependencies = [
 
 [[package]]
 name = "parhelion-engine"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "parhelion-state",
@@ -1565,7 +1565,7 @@ dependencies = [
 
 [[package]]
 name = "parhelion-state"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "reqwest",
  "serde",
