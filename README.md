@@ -2,6 +2,8 @@
 
 A local Stellar node that lazily forks mainnet.
 
+[![CI](https://github.com/Parhelion-Labs/parhelion/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Parhelion-Labs/parhelion/actions/workflows/ci.yml)
+
 ## `parhelion simulate`
 
 Runs one contract call against a fork of mainnet. Only the ledger entries the call touches are
@@ -23,6 +25,11 @@ min resource fee: 6269 stroops
 resources: 150263 instructions, 0 bytes read, 0 bytes written
 footprint: 1 read-only, 0 read-write
 ```
+
+Recorded runs against the Soroswap XLM/USDC pair and a Blend v2.1 pool on mainnet
+([asciicast](docs/demo/simulate.cast)):
+
+![parhelion simulate --verbose on two mainnet contracts](docs/demo/simulate.gif)
 
 Arguments are written `<type>:<value>`: `bool`, `u32`, `i32`, `u64`, `i64`, `u128`, `i128`,
 `symbol`, `string`, `bytes` (hex), `address` (`G...` or `C...`), or the bare word `void`.
@@ -47,6 +54,23 @@ runs in CI on every push (job `Differential`) and locally with
 Fields compared: return value, footprint read-only set, footprint read-write set, resources
 (instructions, disk read bytes, write bytes), min resource fee. On a mismatch the harness prints
 each differing field with both values.
+
+### Results
+
+From [CI run 40497464139](https://github.com/Parhelion-Labs/parhelion/actions/runs/40497464139/job/122166423657)
+on commit `848834b`, the merge of `v0.1.0` back into `develop`. Each side reads the latest ledger
+when it runs, so the two can be one ledger apart.
+
+| Contract | Call | Parhelion ledger | Mainnet RPC ledger | Result |
+|---|---|---|---|---|
+| Blend v2.1 lending pool | `get_config` | 65163050 | 65163051 | all fields agree |
+| Blend v2.1 lending pool | `get_reserve_list` | 65163050 | 65163051 | all fields agree |
+| Soroswap XLM/USDC pair | `token_0` | 65163051 | 65163051 | all fields agree |
+| Soroswap XLM/USDC pair | `get_reserves` | 65163051 | 65163051 | all fields agree |
+| Soroswap XLM/USDC pair | `total_supply` | 65163051 | 65163051 | all fields agree |
+| USDC Stellar Asset Contract | `decimals` | 65163051 | 65163052 | all fields agree |
+| USDC Stellar Asset Contract | `name` | 65163051 | 65163052 | all fields agree |
+| USDC Stellar Asset Contract | `balance(issuer)` | 65163051 | 65163052 | all fields agree |
 
 RPC provider: `https://mainnet.sorobanrpc.com`, public and keyless; it publishes no rate limit.
 A run makes about 25 requests and has hit occasional connection timeouts, which the client
